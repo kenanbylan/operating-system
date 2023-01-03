@@ -1,8 +1,9 @@
-#include <stdio.h>
+/*#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <time.h>
 #include <semaphore.h>
+#include <mqueue.h>
 
 sem_t sem;
 
@@ -10,6 +11,16 @@ void swap(int *arr, int i, int j) {
     int tmp = arr[i];
     arr[i] = arr[j];
     arr[j] = tmp;
+}
+
+void bubble_sort(int *arr, int n) {
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n - 1; j++) {
+            if (arr[j] > arr[j + 1]) {
+                swap(arr, j, j + 1);
+            }
+        }
+    }
 }
 
 int findTopK(FILE *fp, int k){
@@ -35,19 +46,30 @@ int findTopK(FILE *fp, int k){
     return temp;
 }
 
+
+//findtopk with using posix message queue
 int main() {
     int n;
-    sem_open(&sem, 0, 1);
     printf("Enter a number: ");
     scanf("%d", &n);
-
+    mqd_t mq;
+    struct mq_attr attr;
+    attr.mq_flags = 0;
+    attr.mq_maxmsg = 10;
+    attr.mq_msgsize = 33;
+    attr.mq_curmsgs = 0;
+    mq = mq_open("/myqueue", O_CREAT | O_RDWR, 0666, &attr);
+    if (mq == -1) {
+        printf("Error opening message queue\n");
+        exit(1);
+    }
     pid_t pid[n];
-    // Create n child processes and open text[n] files
+    //create n threads and open text[n] files
     for (int i = 0; i < n; i++) {
         pid[i] = fork();
         if (pid[i] == 0) {
-            char filename[]="textx.txt";
-            filename[4] = i + 48;
+            char filename[]="filex.txt";
+            filename[4] = i + 49;
             FILE *fp = fopen(filename, "r");
             if (fp == NULL) {
                 printf("Error opening file\n");
@@ -55,37 +77,32 @@ int main() {
             }
             int result = findTopK(fp, 3);
             fclose(fp);
-            sem_wait(&sem);
-            fp = fopen("intermediate.txt", "a");
-            fprintf(fp, "%d\n", result);
-            fclose(fp);
-            sem_post(&sem);
+            char *msg = malloc(sizeof(char)*20);
+            sprintf(msg, "%d", result);
+            mq_send(mq, msg, sizeof(msg)+1, 0);
+            printf("process %d has finished\n", getpid());
             exit(0);
         }
     }
-    //wait for all child processes to finish, open intermediate.txt, sort the numbers and delete intermediate.txt
+    //wait for all child processes to finish, receive the numbers from message queue and sort them
     for (int i = 0; i < n; i++) {
         waitpid(pid[i], NULL, 0);
     }
-    FILE *fp = fopen("intermediate.txt", "r");
+    printf("all processes have finished\n");
+    char msg[50];
     int *arr = malloc(n * sizeof(int));
-    int temp;
     for (int i = 0; i < n; i++) {
-        fscanf(fp, "%d", &temp);
-        arr[i] = temp;
+        mq_receive(mq, msg, sizeof(msg), 0);
+        perror("mq_receive");
+        printf("received :%s\n", msg);
+        arr[i] = atoi(msg);
     }
-    fclose(fp);
-    remove("intermediate.txt");
+    mq_close(mq);
+    mq_unlink("/myqueue");
     //bubble sort
-    for (int i = 0; i < n-1; i++) {
-        for (int j = 0; j < n-i-1; j++) {
-            if (arr[j] < arr[j+1]) {
-                swap(arr, j, j+1);
-            }
-        }
-    }
+    bubble_sort(arr, n);
     //create result.txt and write the sorted numbers
-    fp = fopen("result.txt", "w");
+    FILE *fp = fopen("result.txt", "w");
     for (int i = 0; i < n; i++) {
         fprintf(fp, "%d\n", arr[i]);
     }
@@ -93,3 +110,4 @@ int main() {
     free(arr);
     return 0;
 }
+*/

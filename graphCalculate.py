@@ -33,6 +33,7 @@ plt.plot(c, d) # Plot the chart
 #findtopk_mqueue.c message queue ile haberleşirler
 
 
+
 plt.title('CPU Time Measuring') # Chart title
 plt.xlabel('N') # X-axis label
 plt.ylabel('CPU Time') # Y-axis label

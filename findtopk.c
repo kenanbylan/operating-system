@@ -29,26 +29,29 @@ void bubble_sort(int *arr, int n) // child processlerin degerleri bulunduktan so
 }
 
 int findTopK(FILE *fp, int k)
+
 { // en büyük k sayısını bulur
-    int *arr = malloc(k * sizeof(int));
+
+    int *arr = malloc(k * sizeof(int)); // bellekte k elemanlı dizi oluşturur.
     int temp;
     for (int i = 0; i < k; i++)
     {
-        arr[i] = 0;
+        arr[i] = 0; // bellekte oluşturulan dizinin elemanlarınnı 0 yaptık.
     }
 
-    while (fscanf(fp, "%d", &temp) != EOF)
-    { // dosyadan okuma yapılır.dosyanın sonuna gelene kadar çalış.
-        if (temp > arr[0])
-        { // gelen dosya en büyük k sayısından büyükse
-            arr[0] = temp;
-            for (int i = 0; i < k - 1; i++)
+    while (fscanf(fp, "%d", &temp) != EOF) // end of file.
+    {                                      // dosyadan okuma yapılır.dosyanın sonuna gelene kadar çalış.
+        if (temp > arr[0])                 // okunan temp degeri dizinin en büyük elemanından büyükse
+        {
+            arr[0] = temp; // dizinin en büyük elemanı temp olur.
+
+            for (int i = 0; i < k - 1; i++) // ardından dizi sıralarız.
             {
                 if (arr[i] < arr[i + 1])
                 {
                     break;
                 }
-                swap(arr, i, i + 1); // en küçük sayıyı bulur.
+                swap(arr, i, i + 1); // swap işlemiyle büyük olan eleman dizinin en başına gelir.
             }
         }
     }
@@ -60,43 +63,52 @@ int findTopK(FILE *fp, int k)
 int main(int argc, char *argv[])
 {
 
-    // time_t start_time = time(NULL);  //çalışma zamanı başlangıcı.
-
-    clock_t start_t, end_t;
-
+    clock_t start_t, end_t; // cpu üzerinde kodun çalışma sürelerini hesaplamak için kullanılır.
     start_t = clock();
 
-    int k = atoi(argv[1]);
-    int n = atoi(argv[2]);
-    char **files = argv + 3;
-    char *output = argv[argc - 1];
-    sem_open(&sem, 0, 1); // indirmeyip , karışmasın diye.
+    int k = atoi(argv[1]);         // terminal üzerinden girilen k sayısını alır.
+    int n = atoi(argv[2]);         // terminal üzerinden girilen dosya sayısını alır.
+    char **files = argv + 3;       // terminal üzerinden girilen dosya isimlerini alır.
+    char *output = argv[argc - 1]; // terminal üzerinden girilen output dosyasını alır. Bu output dosyasına en büyük k sayıları yazılır.
 
-    pid_t pid[n]; // n elemanlı process arrayi .
+    sem_open(&sem, 0, 1); // oluşturulan child processlerin birbirlerini beklemesi için semaphore kullanılır.
+
+    pid_t pid[n]; // child processlerin process idlerini  tutmak için
     for (int i = 0; i < n; i++)
     { // her elemanı forkluyoruz.
 
-        pid[i] = fork();
-        if (pid[i] == 0)
+        pid[i] = fork(); // ana processin child processler oluşturması için fork kullanılır.
+        if (pid[i] == 0) // eğer 0 ise child process'dir.
         {
-            char *filename = files[i];
-            FILE *fp = fopen(filename, "r");
+            char *filename = files[i];       // terminalden girilen dosya isimlerini alır.
+            FILE *fp = fopen(filename, "r"); // girilen dosyaları okuruz.
             if (fp == NULL)
             {
                 printf("Error opening file\n");
                 exit(1); // bir gelirse hata çıkışı
             }
+
+            // ardından text dosyalarından alınan degerler fintopK fonksiyonuna yollarız.
+            // ana sebebi ise en büyük k. sayısını bulmak için.
             int result = findTopK(fp, k); // en büyük k sayısını bulur.
+
+            // result degeri , child processlerin bulduğu en büyük k sayısını tutar.
             fclose(fp);
-            sem_wait(&sem);                      // beklemesi gerekirse bekletiyor.
-            fp = fopen("intermediate.txt", "a"); // append modunda ekleme yapılıyor.
-            fprintf(fp, "%d\n", result);         // dosyaya yazma işlemi.
+
+            sem_wait(&sem); // beklemesi gerekirse bekletiyor.
+            // semafor neden kullandık ? çünkü havalı.
+            // child processlerin birbini beklemesi için semaphore kullanılırız böylelikle
+            // segmentation fault hatasını almayı önleriz aynı zamanda raceContition hatasına benzer.
+
+            fp = fopen("intermediate.txt", "a"); // bu dosyaya en büyük k. sayıları yazılır.
+                                                 // bu bizim istediğimiz cevaptır.
+
+            fprintf(fp, "%d\n", result); // dosyaya yazma işlemi.
             fclose(fp);
-            sem_post(&sem); // post , eğer sırada bekleyen varsa onu çalıştırıyor. yoksa bekliyor.
+            sem_post(&sem); // sırada child process varsa bekleyen child processi çalıştırır.
             exit(0);
         }
     }
-    // wait for all child processes to finish, open intermediate.txt, sort the numbers and delete intermediate.txt
 
     // ana processin beklemesi için , child processlerin bitmesini bekliyoruz.
     for (int i = 0; i < n; i++)
@@ -105,16 +117,19 @@ int main(int argc, char *argv[])
     }
 
     FILE *fp = fopen("intermediate.txt", "r"); // dosyayı okuma modunda açıyoruz.
-    int *arr = malloc(n * sizeof(int));        // n elemanlı dizi oluşturuyoruz. n dosyas sayısı.
-    int temp;                                  // dosyadan okunan sayıyı tutmak için.
+    // üstte append modunda açtığımız dosyaya child processlerin bulduğu en büyük k sayılarını yazdık.
+
+    int *arr = malloc(n * sizeof(int)); // n elemanlı dizi oluşturuyoruz. n dosyası  sayısı.
+    int temp;                           // dosyadan okunan sayıyı tutmak için.
     // bütün child processlerin sonucunu okuyoruz. ana processin içinde. child processlerin içinde değil.
+
     for (int i = 0; i < n; i++)
     {
         fscanf(fp, "%d", &temp); // dosyadan okuma işlemi.
         arr[i] = temp;
     }
     fclose(fp);
-    remove("intermediate.txt"); // dosyayı silme işlemi.
+    remove("intermediate.txt"); // dosyayı silme işlemi. rami boşaltma işlemi.
     // bubble sort
     bubble_sort(arr, n); // diziyi sıralama işlemi.
     // write to output file
@@ -128,8 +143,6 @@ int main(int argc, char *argv[])
     free(arr);
 
     // çalışma zamanı bitişi.
-    // time_t end_time = time(NULL);
-
     end_t = clock();
 
     // double elapsed_time = difftime(end_time, start_time);

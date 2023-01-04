@@ -1,13 +1,15 @@
-/*#include <stdio.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <time.h>
 #include <semaphore.h>
 #include <mqueue.h>
 
+
 sem_t sem;
 
 void swap(int *arr, int i, int j) {
+
     int tmp = arr[i];
     arr[i] = arr[j];
     arr[j] = tmp;
@@ -48,12 +50,21 @@ int findTopK(FILE *fp, int k){
 
 
 //findtopk with using posix message queue
-int main() {
+int main(int argc, char *argv[]) {
+
+    clock_t start_t, end_t;
+    start_t = clock();
+    
+
+
+
+
     int n;
     printf("Enter a number: ");
     scanf("%d", &n);
     mqd_t mq;
     struct mq_attr attr;
+
     attr.mq_flags = 0;
     attr.mq_maxmsg = 10;
     attr.mq_msgsize = 33;
@@ -108,6 +119,15 @@ int main() {
     }
     fclose(fp);
     free(arr);
+
+     end_t = clock();
+
+    //double elapsed_time = difftime(end_time, start_time);
+    printf("\nstart_t değeri: %ld\n", start_t);
+    printf("end_t değeri: %ld\n", end_t);
+    printf("CPU süreci (saniye): %f\n", (double)(end_t - start_t) / CLOCKS_PER_SEC);
+    
+
+
     return 0;
 }
-*/

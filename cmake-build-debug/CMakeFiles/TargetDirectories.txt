@@ -1,3 +1,0 @@
-/Users/hakantekir/CLionProjects/OSProject/cmake-build-debug/CMakeFiles/OSProject.dir
-/Users/hakantekir/CLionProjects/OSProject/cmake-build-debug/CMakeFiles/edit_cache.dir
-/Users/hakantekir/CLionProjects/OSProject/cmake-build-debug/CMakeFiles/rebuild_cache.dir
